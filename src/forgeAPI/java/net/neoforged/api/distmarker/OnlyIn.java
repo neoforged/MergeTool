@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package net.minecraftforge.api.distmarker;
+package net.neoforged.api.distmarker;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;

@@ -10,7 +10,7 @@
  *     cpw - implementation
  */
 
-package net.minecraftforge.fml.relauncher;
+package net.neoforged.fml.relauncher;
 
 public enum Side {
     CLIENT, SERVER, BUKKIT;

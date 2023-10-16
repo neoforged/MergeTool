@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-package net.minecraftforge.mergetool;
+package net.neoforged.mergetool;
 
 import java.util.List;
 
@@ -25,15 +25,15 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.api.distmarker.OnlyIns;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.OnlyIns;
 import net.minecraftforge.srgutils.MinecraftVersion;
 
 public enum AnnotationVersion
 {
     CPW(cpw.mods.fml.relauncher.SideOnly.class, cpw.mods.fml.relauncher.Side.class, "CLIENT", "SERVER"),
-    NMF(net.minecraftforge.fml.relauncher.SideOnly.class, net.minecraftforge.fml.relauncher.Side.class, "CLIENT", "SERVER"),
+    NMF(net.neoforged.fml.relauncher.SideOnly.class, net.neoforged.fml.relauncher.Side.class, "CLIENT", "SERVER"),
     API(OnlyIn.class, Dist.class, OnlyIns.class, "_interface", "CLIENT", "DEDICATED_SERVER");
 
     private final String holder;

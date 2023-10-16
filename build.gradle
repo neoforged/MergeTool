@@ -7,24 +7,24 @@ plugins {
     id 'org.cadixdev.licenser' version '0.6.1'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
     id 'com.github.ben-manes.versions' version '0.47.0'
-    id 'net.minecraftforge.gradleutils' version '2.+'
+    id 'net.neoforged.gradleutils' version '2.+'
 }
 
-group = 'net.minecraftforge'
+group = 'net.neoforged'
 version = gradleutils.getTagOffsetVersion()
 println "Version: $version"
 
 repositories {
     mavenCentral()
     maven {
-        name = 'MinecraftForge'
-        url = 'https://maven.minecraftforge.net'
+        name = 'NeoForged'
+        url = 'https://maven.neoforged.net/releases'
     }
 }
 
 license {
     header = file('LICENSE-header.txt')
-    include 'net/minecraftforge/mergetool/**/*.java'
+    include 'net/neoforged/mergetool/**/*.java'
     newLine = false
 }
 
@@ -43,7 +43,7 @@ java {
 
 tasks.named('jar', Jar).configure {
     manifest {
-        attributes('Main-Class': 'net.minecraftforge.mergetool.ConsoleMerger')
+        attributes('Main-Class': 'net.neoforged.mergetool.ConsoleMerger')
         attributes('Implementation-Version': project.version)
     }
     from sourceSets.cpwFML.output
@@ -72,7 +72,7 @@ tasks.register('forgeFML', Jar) {
 }
 
 tasks.register('forgeAPI', Jar) {
-    manifest.attributes('Automatic-Module-Name': 'net.minecraftforge.mergetool.api')
+    manifest.attributes('Automatic-Module-Name': 'net.neoforged.mergetool.api')
     archiveClassifier = 'api'
     from sourceSets.forgeAPI.output
 }
@@ -108,15 +108,15 @@ publishing {
         pom {
             name = 'MergeTool'
             description = 'Merges two jar files together, useful for rebuilding Retroguard stripped jars.'
-            url = 'https://github.com/MinecraftForge/MergeTool'
+            url = 'https://github.com/neoforged/MergeTool'
             scm {
-                url = 'https://github.com/MinecraftForge/MergeTool'
-                connection = 'scm:git:git://github.com/MinecraftForge/MergeTool.git'
-                developerConnection = 'scm:git:git@github.com:MinecraftForge/MergeTool.git'
+                url = 'https://github.com/neoforged/MergeTool'
+                connection = 'scm:git:git://github.com/neoforged/MergeTool.git'
+                developerConnection = 'scm:git:git@github.com:neoforged/MergeTool.git'
             }
             issueManagement {
                 system = 'github'
-                url = 'https://github.com/MinecraftForge/MergeTool/issues'
+                url = 'https://github.com/neoforged/MergeTool/issues'
             }
 
             licenses {
