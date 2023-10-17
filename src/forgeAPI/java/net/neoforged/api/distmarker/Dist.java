@@ -30,45 +30,63 @@ package net.neoforged.api.distmarker;
  *     it contains a server, which can simulate the world and communicates via network.</li>
  * </ul>
  * <p>
- * When working with Dist-specific code, it is important to guard invocations such that
- * classes invalid for the current Dist are not loaded.
+ * Code that is only present in a specific dist is referred to as "dist-specific code", 
+ * and will be marked with {@link OnlyIn}. Code that is always available is referred to 
+ * as "shared code" (or "common code"). It is also common to refer to dist-specific code 
+ * as "client-only code" or "server-only code" to indicate the dist.
  * <p>
- * This is done by obeying the following rules:<br>
- * 1. All Dist-specific code must go in a separate class.<br>
- * 2. All accesses to the Dist-specific class must be guarded by a Dist check.
+ * To prevent classloading errors, it is important to ensure that {@link OnlyIn} elements are 
+ * only loaded if their designated dist is the same as the executing dist.
  * <p>
- * Following these rules ensures that a Dist-induced classloading error will never occur.
+ * This is done by obeying the following rules:
+ * <ol>
+ * <li>All dist-specific code must go in a separate class, called a "bouncer" class.</li>
+ * <li>All accesses to the bouncer class must be guarded by a dist check.</li>
+ * </ol>
  * <p>
  * An example of these rules in action is shown below:
  * <p>
- * <code><pre>
- * // Class which accesses code that is only present in Dist.CLIENT
- * public class ClientOnlyThings
+ * <pre>{@code
+ * // Client-only bouncer class which accesses client-only code. 
+ * // Methods in this class will fail verification if invoked on the wrong dist.
+ * // However, the class can still be referenced from shared code as long as no methods are invoked unconditionally.
+ * public class ClientBouncer
  * {
  *     public static boolean isClientSingleplayer()
  *     {
+ *         // Minecraft is @OnlyIn(Dist.CLIENT)
  *         return Minecraft.getInstance().isSingleplayer();
  *     }
  * }
  * 
- * // Class which is loaded on both Dists.
+ * // Class which may be loaded on either dist.
  * public class SharedClass 
  * {
  *     // Returns true if the client is playing singleplayer.
- *     // Returns false if executed on the server (will never crash).
+ *     // Returns false if executed on the server. Will never crash.
  *     public static boolean isClientSingleplayer()
  *     {
  *         if(currentDist.isClient())
  *         {
- *             return ClientOnlyThings.isClientSingleplayer();
+ *             return ClientBouncer.isClientSingleplayer();
  *         }
  *         return false;
  *     }
  * }
- * </pre></code>
+ * }</pre>
  * 
- * In this example, any code can now call <code>SharedClass.isClientSingleplayer()</code> without guarding.<br>
- * However, only code that is specific to Dist.CLIENT may call <code>ClientOnlyThings.isClientSingleplayer()<code>.
+ * In this example, any code can now call {@code SharedClass.isClientSingleplayer()} without guarding.
+ * <p>
+ * The specifics of why this works relies on how the class verifier operates. When the shared method 
+ * is invoked for the first time, the following steps occur:
+ * <ol>
+ * <li>The class {@code SharedClass} is loaded, if it was not previously accessed</li>
+ * <li>The method {@code SharedClass.isClientSingleplayer} is loaded and verified.</li>
+ * <li>It is checked that {@code ClientBouncer} exists, but the content of its methods are not yet verified.</li>
+ * <li>If running on {@link Dist#CLIENT}, then {@code ClientBouncer.isClientSingleplayer} will be verified.</li>
+ * </ol>
+ * The final step causes the verifier to resolve a reference to {@code Minecraft}, which is client-only code.
+ * If this step happend on {@link Dist#DEDICATED_SERVER} (i.e. if the dist check were omitted), the game would crash.
  * 
  * @apiNote How to access the current Dist will depend on the project. When using FML, it is in FMLEnvironment.dist
  */
