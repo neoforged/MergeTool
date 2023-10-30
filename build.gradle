@@ -8,6 +8,7 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '8.1.1'
     id 'com.github.ben-manes.versions' version '0.47.0'
     id 'net.neoforged.gradleutils' version '2.+'
+    id 'signing'
 }
 
 group = 'net.neoforged'
@@ -128,14 +129,25 @@ publishing {
 
             developers {
                 developer {
-                    id = 'LexManos'
-                    name = 'Lex Manos'
+                    id = 'neoforged'
+                    name = 'NeoForged'
+                    email = 'contact@neoforged.net'
+                    url = 'https://github.com/NeoForged/'
                 }
             }
         }
     }
     repositories {
         maven gradleutils.getPublishingForgeMaven()
+    }
+}
+
+if (System.getenv('GPG_PRIVATE_KEY')) {
+    signing {
+        final signingKey = System.getenv('GPG_PRIVATE_KEY') ?: ''
+        final signingPassword = System.getenv('GPG_KEY_PASSWORD') ?: ''
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign publishing.publications.mavenJava
     }
 }
 
