@@ -66,7 +66,7 @@ package net.neoforged.api.distmarker;
  *     // Returns false if executed on the server. Will never crash.
  *     public static boolean isClientSingleplayer()
  *     {
- *         if(currentDist.isClient())
+ *         if (currentDist.isClient())
  *         {
  *             return ClientBouncer.isClientSingleplayer();
  *         }
@@ -86,7 +86,7 @@ package net.neoforged.api.distmarker;
  * <li>If running on {@link Dist#CLIENT}, then {@code ClientBouncer.isClientSingleplayer} will be verified.</li>
  * </ol>
  * The final step causes the verifier to resolve a reference to {@code Minecraft}, which is client-only code.
- * If this step happend on {@link Dist#DEDICATED_SERVER} (i.e. if the dist check were omitted), the game would crash.
+ * If this step happened on {@link Dist#DEDICATED_SERVER} (i.e., if the dist check were omitted), the game would crash.
  * 
  * @apiNote How to access the current Dist will depend on the project. When using FML, it is in FMLEnvironment.dist
  */
