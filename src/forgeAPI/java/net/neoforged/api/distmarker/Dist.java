@@ -77,18 +77,11 @@ package net.neoforged.api.distmarker;
  * 
  * In this example, any code can now call {@code SharedClass.isClientSingleplayer()} without guarding.
  * <p>
- * The specifics of why this works relies on how the class verifier operates. When the shared method 
- * is invoked for the first time, the following steps occur:
- * <ol>
- * <li>The class {@code SharedClass} is loaded, if it was not previously accessed</li>
- * <li>The method {@code SharedClass.isClientSingleplayer} is loaded and verified.</li>
- * <li>It is checked that {@code ClientBouncer} exists, but the content of its methods are not yet verified.</li>
- * <li>If running on {@link Dist#CLIENT}, then {@code ClientBouncer.isClientSingleplayer} will be verified.</li>
- * </ol>
- * The final step causes the verifier to resolve a reference to {@code Minecraft}, which is client-only code.
- * If this step happened on {@link Dist#DEDICATED_SERVER} (i.e., if the dist check were omitted), the game would crash.
+ * The specifics of why this works are too complicated to be written here.
+ * <p>
+ * Additionally, this process can be extrapolated for use with any optional dependency.
  * 
- * @apiNote How to access the current Dist will depend on the project. When using FML, it is in FMLEnvironment.dist
+ * @apiNote How to access the current Dist will depend on the project. When using FancyModLoader, it is in FMLEnvironment.dist
  */
 public enum Dist {
 
