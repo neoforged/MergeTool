@@ -20,7 +20,7 @@
 package net.neoforged.api.distmarker;
 
 /**
- * A distribution of the minecraft game. There are two common distributions, and though
+ * A physical distribution of Minecraft. There are two common distributions, and though
  * much code is common between them, there are some specific pieces that are only present
  * in one or the other.
  * <ul>
@@ -29,6 +29,59 @@ package net.neoforged.api.distmarker;
  *     <li>{@link #DEDICATED_SERVER} is the <em>dedicated server</em> distribution,
  *     it contains a server, which can simulate the world and communicates via network.</li>
  * </ul>
+ * <p>
+ * Code that is only present in a specific dist is referred to as "dist-specific code", 
+ * and will be marked with {@link OnlyIn}. Code that is always available is referred to 
+ * as "shared code" (or "common code"). It is also common to refer to dist-specific code 
+ * as "client-only code" or "server-only code" to indicate the dist.
+ * <p>
+ * To prevent classloading errors, it is important to ensure that {@link OnlyIn} elements are 
+ * only loaded if their designated dist is the same as the executing dist.
+ * <p>
+ * This is done by obeying the following rules:
+ * <ol>
+ * <li>All dist-specific code must go in a separate class, called a "bouncer" class.</li>
+ * <li>All accesses to the bouncer class must be guarded by a dist check.</li>
+ * </ol>
+ * <p>
+ * An example of these rules in action is shown below:
+ * <p>
+ * <pre>{@code
+ * // Client-only bouncer class which accesses client-only code. 
+ * // Methods in this class will fail verification if invoked on the wrong dist.
+ * // However, the class can still be referenced from shared code as long as no methods are invoked unconditionally.
+ * public class ClientBouncer
+ * {
+ *     public static boolean isClientSingleplayer()
+ *     {
+ *         // Minecraft is @OnlyIn(Dist.CLIENT)
+ *         return Minecraft.getInstance().isSingleplayer();
+ *     }
+ * }
+ * 
+ * // Class which may be loaded on either dist.
+ * public class SharedClass 
+ * {
+ *     // Returns true if the client is playing singleplayer.
+ *     // Returns false if executed on the server. Will never crash.
+ *     public static boolean isClientSingleplayer()
+ *     {
+ *         if (currentDist.isClient())
+ *         {
+ *             return ClientBouncer.isClientSingleplayer();
+ *         }
+ *         return false;
+ *     }
+ * }
+ * }</pre>
+ * 
+ * In this example, any code can now call {@code SharedClass.isClientSingleplayer()} without guarding.
+ * <p>
+ * The specifics of why this works are too complicated to be written here.
+ * <p>
+ * Additionally, this process can be extrapolated for use with any optional dependency.
+ * 
+ * @apiNote How to access the current Dist will depend on the project. When using FancyModLoader, it is in FMLEnvironment.dist
  */
 public enum Dist {
 
