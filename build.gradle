@@ -42,6 +42,21 @@ sourceSets {
 }
 
 java {
+    registerFeature('cpw') {
+        usingSourceSet sourceSets.cpwFML
+        capability(project.group, "mergetool-cpw", project.version.toString())
+    }
+    registerFeature('forge') {
+        usingSourceSet sourceSets.forgeFML
+        capability(project.group, "mergetool-forge", project.version.toString())
+    }
+    registerFeature('api') {
+        usingSourceSet sourceSets.forgeAPI
+        capability(project.group, "mergetool-api", project.version.toString())
+    }
+}
+
+java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(8)
     }
@@ -68,20 +83,8 @@ tasks.named('sourcesJar', Jar).configure {
     from sourceSets.forgeAPI.allSource
 }
 
-tasks.register('cpwFML', Jar) {
-    archiveClassifier = 'cpw'
-    from sourceSets.cpwFML.output
-}
-
-tasks.register('forgeFML', Jar) {
-    archiveClassifier = 'forge'
-    from sourceSets.forgeFML.output
-}
-
-tasks.register('forgeAPI', Jar) {
+tasks.named('forgeAPIJar', Jar) {
     manifest.attributes('Automatic-Module-Name': 'net.neoforged.mergetool.api')
-    archiveClassifier = 'api'
-    from sourceSets.forgeAPI.output
 }
 
 dependencies {
@@ -89,26 +92,30 @@ dependencies {
     implementation 'org.ow2.asm:asm-tree:9.5'
     implementation 'org.ow2.asm:asm-util:9.5'
     implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
-    implementation 'net.minecraftforge:srgutils:0.4.15'
+    implementation 'net.neoforged:srgutils:1.0.1'
 
     implementation sourceSets.cpwFML.output
     implementation sourceSets.forgeFML.output
     implementation sourceSets.forgeAPI.output
 }
 
-artifacts {
-    archives shadowJar
-    archives cpwFML
-    archives forgeFML
-    archives forgeAPI
+[
+        configurations.runtimeElements,
+        configurations.apiElements,
+        configurations.shadowRuntimeElements,
+        configurations.sourcesElements
+].each {
+    it.outgoing {
+        capability("${project.group}:mergetool:${project.version}")
+        capability("${project.group}:mergetool-cpw:${project.version}")
+        capability("${project.group}:mergetool-api:${project.version}")
+        capability("${project.group}:mergetool-forge:${project.version}")
+    }
 }
 
 publishing {
     publications.register('mavenJava', MavenPublication) {
         from components.java
-        artifact cpwFML
-        artifact forgeFML
-        artifact forgeAPI
 
         artifactId = 'mergetool'
 

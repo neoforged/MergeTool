@@ -28,7 +28,7 @@ import org.objectweb.asm.Type;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.api.distmarker.OnlyIns;
-import net.minecraftforge.srgutils.MinecraftVersion;
+import net.neoforged.srgutils.MinecraftVersion;
 
 public enum AnnotationVersion
 {
