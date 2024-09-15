@@ -35,7 +35,7 @@ public enum AnnotationVersion
     CPW(cpw.mods.fml.relauncher.SideOnly.class, cpw.mods.fml.relauncher.Side.class, "CLIENT", "SERVER"),
     NMF(net.neoforged.fml.relauncher.SideOnly.class, net.neoforged.fml.relauncher.Side.class, "CLIENT", "SERVER"),
     API(OnlyIn.class, Dist.class, OnlyIns.class, "_interface", "CLIENT", "DEDICATED_SERVER"),
-    FABRIC("Lnet/fabricmc/api/Environment;", "Lnet/fabricmc/api/EnvType", "CLIENT", "SERVER");
+    FABRIC("Lnet/fabricmc/api/Environment;", "Lnet/fabricmc/api/EnvType;", "CLIENT", "SERVER");
 
     private final String holder;
     private final String value;
