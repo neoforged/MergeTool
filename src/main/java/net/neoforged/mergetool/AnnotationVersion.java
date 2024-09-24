@@ -34,7 +34,8 @@ public enum AnnotationVersion
 {
     CPW(cpw.mods.fml.relauncher.SideOnly.class, cpw.mods.fml.relauncher.Side.class, "CLIENT", "SERVER"),
     NMF(net.neoforged.fml.relauncher.SideOnly.class, net.neoforged.fml.relauncher.Side.class, "CLIENT", "SERVER"),
-    API(OnlyIn.class, Dist.class, OnlyIns.class, "_interface", "CLIENT", "DEDICATED_SERVER");
+    API(OnlyIn.class, Dist.class, OnlyIns.class, "_interface", "CLIENT", "DEDICATED_SERVER"),
+    FABRIC("Lnet/fabricmc/api/Environment;", "Lnet/fabricmc/api/EnvType;", "CLIENT", "SERVER", false);
 
     private final String holder;
     private final String value;
@@ -42,6 +43,7 @@ public enum AnnotationVersion
     private final String interface_key;
     private final String client;
     private final String server;
+    private final boolean runtimeRetention;
 
     private static final MinecraftVersion MC_8 = MinecraftVersion.from("14w02a");
     private static final MinecraftVersion MC_13 = MinecraftVersion.from("17w43a");
@@ -49,6 +51,17 @@ public enum AnnotationVersion
     private AnnotationVersion(Class<?> holder, Class<?> value, String client, String server)
     {
         this(holder, value, null, null, client, server);
+    }
+    
+    private AnnotationVersion(String holder, String value, String client, String server, boolean runtimeRetention)
+    {
+        this.holder = holder;
+        this.value = value;
+        this.repeatable = null;
+        this.interface_key = null;
+        this.client = client;
+        this.server = server;
+        this.runtimeRetention = runtimeRetention;
     }
 
     private AnnotationVersion(Class<?> holder, Class<?> value, Class<?> repeatable, String interface_key, String client, String server)
@@ -59,6 +72,7 @@ public enum AnnotationVersion
         this.interface_key = interface_key;
         this.client = client;
         this.server = server;
+        this.runtimeRetention = true;
     }
 
     public static AnnotationVersion fromVersion(String v)
@@ -98,28 +112,28 @@ public enum AnnotationVersion
         if (clientOnly.size() + serverOnly.size() == 1)
         {
             if (clientOnly.size() == 1)
-                add(cls.visitAnnotation(this.holder, true), true).visit(interface_key, Type.getObjectType(clientOnly.get(0)));
+                add(cls.visitAnnotation(this.holder, this.runtimeRetention), true).visit(interface_key, Type.getObjectType(clientOnly.get(0)));
             else
-                add(cls.visitAnnotation(this.holder, true), false).visit(interface_key, Type.getObjectType(serverOnly.get(0)));
+                add(cls.visitAnnotation(this.holder, this.runtimeRetention), false).visit(interface_key, Type.getObjectType(serverOnly.get(0)));
         }
         else
         {
-            AnnotationVisitor rep = cls.visitAnnotation(this.holder, true).visitArray("value");
+            AnnotationVisitor rep = cls.visitAnnotation(this.holder, this.runtimeRetention).visitArray("value");
             clientOnly.forEach(intf -> add(rep.visitAnnotation(null, this.repeatable), true).visit(interface_key, Type.getObjectType(intf)));
             serverOnly.forEach(intf -> add(rep.visitAnnotation(null, this.repeatable), false).visit(interface_key, Type.getObjectType(intf)));
         }
     }
     public void add(ClassVisitor cls, boolean isClientOnly)
     {
-        add(cls.visitAnnotation(this.holder, true), isClientOnly);
+        add(cls.visitAnnotation(this.holder, this.runtimeRetention), isClientOnly);
     }
     public void add(FieldVisitor fld, boolean isClientOnly)
     {
-        add(fld.visitAnnotation(this.holder, true), isClientOnly);
+        add(fld.visitAnnotation(this.holder, this.runtimeRetention), isClientOnly);
     }
     public void add(MethodVisitor mtd, boolean isClientOnly)
     {
-        add(mtd.visitAnnotation(this.holder, true), isClientOnly);
+        add(mtd.visitAnnotation(this.holder, this.runtimeRetention), isClientOnly);
     }
     private AnnotationVisitor add(AnnotationVisitor ann, boolean isClientOnly)
     {
