@@ -62,6 +62,8 @@ public class ConsoleMerger
 
     public static void main(String[] args)
     {
+        long started = System.currentTimeMillis();
+
         List<String> extra = new ArrayList<>();
         Tasks task = null;
 
@@ -83,10 +85,13 @@ public class ConsoleMerger
                 extra.add(args[x]);
         }
 
-        if (task == Tasks.MERGE || task == null)
+        if (task == Tasks.MERGE || task == null) {
             merge(extra.toArray(new String[extra.size()]));
-        else if (task == Tasks.STRIP)
+            System.out.println("Merged jars in " + (System.currentTimeMillis() - started) + "ms");
+        } else if (task == Tasks.STRIP) {
             strip(extra.toArray(new String[extra.size()]));
+            System.out.println("Stripped jars in " + (System.currentTimeMillis() - started) + "ms");
+        }
     }
 
     private static void merge(String[] args)
@@ -98,6 +103,7 @@ public class ConsoleMerger
         OptionSpec<Boolean> inject = parser.accepts("inject").withOptionalArg().ofType(Boolean.class).defaultsTo(true);
         OptionSpec<Void> data = parser.accepts("keep-data");
         OptionSpec<Void> meta = parser.accepts("keep-meta");
+        OptionSpec<Void> sourceDistManifest = parser.accepts("source-dist-manifest");
         OptionSpec<AnnotationVersion> anno = parser.accepts("ann").withOptionalArg().ofType(AnnotationVersion.class).withValuesConvertedBy(AnnotationReader).defaultsTo(AnnotationVersion.API);
 
         try
@@ -122,6 +128,9 @@ public class ConsoleMerger
             if (options.has(meta))
                 merge.keepMeta();
 
+            if (options.has(sourceDistManifest))
+                merge.writeSourceDistToManifest();
+
             try
             {
                 merge.process();
@@ -129,12 +138,14 @@ public class ConsoleMerger
             catch (IOException e)
             {
                 e.printStackTrace();
+                System.exit(1);
             }
         }
         catch (OptionException e)
         {
-            System.out.println("Usage: ConsoleMerger --merge --client <ClientJar> --server <ServerJar> --output <MergedJar> [--ann CPW|NMF|API|FABRIC] [--keep-data] [--keep-meta]");
+            System.out.println("Usage: ConsoleMerger --merge --client <ClientJar> --server <ServerJar> --output <MergedJar> [--ann CPW|NMF|API|FABRIC] [--keep-data] [--keep-meta] [--source-dist-manifest]");
             e.printStackTrace();
+            System.exit(1);
         }
     }
 

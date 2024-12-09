@@ -46,6 +46,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -65,6 +68,7 @@ public class Merger
     private HashSet<String> whitelist = new HashSet<>();
     private boolean copyData = false;
     private boolean keepMeta = false;
+    private boolean writeSourceDistToManifest = false;
 
     public Merger(File client, File server, File merged)
     {
@@ -110,6 +114,12 @@ public class Merger
         return this;
     }
 
+    public Merger writeSourceDistToManifest()
+    {
+        this.writeSourceDistToManifest = true;
+        return this;
+    }
+
     public void process() throws IOException
     {
         try (
@@ -118,8 +128,14 @@ public class Merger
             ZipOutputStream outJar = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(this.merged)))
         ) {
             Set<String> added = new HashSet<>();
+
+            if (writeSourceDistToManifest || copyData && keepMeta) {
+                writeMergedManifest(outJar, cInJar, sInJar);
+            }
+
             Map<String, ZipEntry> cClasses = getClassEntries(cInJar, outJar, added);
             Map<String, ZipEntry> sClasses = getClassEntries(sInJar, outJar, null); //Skip data from the server, as it contains libraries.
+
 
             for (Entry<String, ZipEntry> entry : cClasses.entrySet())
             {
@@ -184,6 +200,63 @@ public class Merger
         }
     }
 
+    private void writeMergedManifest(ZipOutputStream outJar,
+                                     ZipFile clientZipFile,
+                                     ZipFile serverZipFile) throws IOException {
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+
+        // Merge existing manifests if requested
+        if (copyData && keepMeta) {
+            ZipEntry clientManifest = clientZipFile.getEntry(JarFile.MANIFEST_NAME);
+            if (clientManifest != null) {
+                try (InputStream in = clientZipFile.getInputStream(clientManifest)) {
+                    manifest.read(in);
+                }
+            }
+            ZipEntry serverManifest = serverZipFile.getEntry(JarFile.MANIFEST_NAME);
+            if (serverManifest != null) {
+                try (InputStream in = serverZipFile.getInputStream(serverManifest)) {
+                    manifest.read(in);
+                }
+            }
+        }
+
+        // Write entries detailing files that were not common
+        if (writeSourceDistToManifest) {
+            setExclusiveEntryDist(clientZipFile, serverZipFile, "client", manifest, true);
+            setExclusiveEntryDist(serverZipFile, clientZipFile, "server", manifest, false);
+        }
+
+        outJar.putNextEntry(getNewEntry(JarFile.MANIFEST_NAME));
+        manifest.write(new BufferedOutputStream(outJar));
+        outJar.closeEntry();
+    }
+
+    private void setExclusiveEntryDist(ZipFile distZipFile,
+                                       ZipFile otherDistZipFile,
+                                       String distId,
+                                       Manifest manifest,
+                                       boolean includeData) {
+        Enumeration<? extends ZipEntry> entries = distZipFile.entries();
+        while (entries.hasMoreElements()) {
+            ZipEntry entry = entries.nextElement();
+            if (isDistExclusiveClassEntry(entry, otherDistZipFile)
+            || includeData && isDistExclusiveDataEntry(entry, otherDistZipFile)) {
+                Attributes attributes = manifest.getEntries().computeIfAbsent(entry.getName(), ignored -> new Attributes());
+                attributes.putValue("Minecraft-Dist", distId);
+            }
+        }
+    }
+
+    private boolean isDistExclusiveClassEntry(ZipEntry entry, ZipFile otherDistZipFile) {
+        return isClassEntry(entry) && otherDistZipFile.getEntry(entry.getName()) == null;
+    }
+
+    private boolean isDistExclusiveDataEntry(ZipEntry entry, ZipFile otherDistZipFile) {
+        return shouldCopyDataEntry(entry) && otherDistZipFile.getEntry(entry.getName()) == null;
+    }
+
     private ZipEntry getNewEntry(String name)
     {
         ZipEntry ret = new ZipEntry(name);
@@ -216,41 +289,57 @@ public class Merger
         for (ZipEntry entry : Collections.list((Enumeration<ZipEntry>)inFile.entries()))
         {
             String entryName = entry.getName();
-            if (!entry.isDirectory() && entryName.endsWith(".class") && !entryName.startsWith("."))
+            if (isClassEntry(entry))
             {
                 ret.put(entryName.replace(".class", ""), entry);
             }
-            else if (this.copyData && added != null && !added.contains(entryName))
+            else if (shouldCopyDataEntry(entry) && added != null && !added.contains(entryName))
             {
-                if (!this.keepMeta && entryName.startsWith("META-INF"))
-                    continue;
-
-                if (entry.isDirectory())
-                {
-                    //Skip directories, they arnt required.
-                    //output.putNextEntry(getNewEntry(entryName)); //New entry to reset time
-                    added.add(entryName);
-                }
-                else
-                {
-                    output.putNextEntry(getNewEntry(entryName));
-                    output.write(readEntry(inFile, entry));
-                    added.add(entryName);
-                }
+                // Skip directories, they arnt required.
+                output.putNextEntry(getNewEntry(entryName));
+                output.write(readEntry(inFile, entry));
+                added.add(entryName);
             }
         }
         return ret;
     }
 
-    private byte[] readEntry(ZipFile inFile, ZipEntry entry) throws IOException
-    {
-        return readFully(inFile.getInputStream(entry));
+
+    private static boolean isClassEntry(ZipEntry entry) {
+        return !entry.isDirectory()
+               && entry.getName().endsWith(".class")
+               && !entry.getName().startsWith(".");
     }
 
-    private byte[] readFully(InputStream stream) throws IOException
+    private boolean shouldCopyDataEntry(ZipEntry entry) {
+        if (entry.isDirectory()) {
+            return false; // Skip directory entries
+        }
+
+        if (!copyData) {
+            return false; // Copying data is disabled
+        }
+
+        // Never copy the manifest since it requires special handling
+        if (entry.getName().equals(JarFile.MANIFEST_NAME)) {
+            return false;
+        }
+
+        // Only copy META-INF content if requested
+        return !keepMeta || !entry.getName().startsWith("META-INF/");
+    }
+
+    private byte[] readEntry(ZipFile inFile, ZipEntry entry) throws IOException
     {
-        byte[] data = new byte[4096];
-        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        try (InputStream inputStream = inFile.getInputStream(entry)) {
+            return readFully(inputStream, (int) entry.getSize());
+        }
+    }
+
+    private byte[] readFully(InputStream stream, int sizeHint) throws IOException
+    {
+        byte[] data = new byte[8192];
+        ByteArrayOutputStream buf = new ByteArrayOutputStream(sizeHint != -1 ? sizeHint : 8192);
         int len;
         do
         {
@@ -506,7 +595,7 @@ public class Merger
     {
         try (InputStream stream = Merger.class.getResourceAsStream("/" + path))
         {
-            return readFully(stream);
+            return readFully(stream, -1);
         }
     }
 }
