@@ -92,7 +92,7 @@ dependencies {
     implementation 'org.ow2.asm:asm-tree:9.5'
     implementation 'org.ow2.asm:asm-util:9.5'
     implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
-    implementation 'net.neoforged:srgutils:1.0.1'
+    implementation 'net.neoforged:srgutils:1.0.10'
 
     implementation sourceSets.cpwFML.output
     implementation sourceSets.forgeFML.output
